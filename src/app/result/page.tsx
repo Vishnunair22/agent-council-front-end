@@ -11,10 +11,10 @@ export default function ResultPage() {
     const [activeTab, setActiveTab] = useState<"result" | "history">("result");
 
     // Use Hook
-    const { history, currentReport, deleteFromHistory, clearHistory } = useForensicData();
+    const { history, currentReport, deleteFromHistory, clearHistory, isLoading } = useForensicData();
 
     // Refinement States
-    const [showAgents, setShowAgents] = useState(false);
+    const [showAgents, setShowAgents] = useState(true);
     const [exportOpen, setExportOpen] = useState(false);
 
     // --- Handlers ---
@@ -78,7 +78,12 @@ export default function ResultPage() {
                             exit={{ opacity: 0, y: -10 }}
                             className="space-y-8"
                         >
-                            {currentReport ? (
+                            {isLoading ? (
+                                <div className="p-12 text-center text-slate-500">
+                                    <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4" />
+                                    <p>Loading forensic data...</p>
+                                </div>
+                            ) : currentReport ? (
                                 <>
                                     {/* Summary Card */}
                                     <div className="p-5 md:p-8 rounded-3xl bg-gradient-to-br from-emerald-900/20 to-slate-900/40 border border-emerald-500/20 shadow-2xl">

@@ -10,6 +10,7 @@ export type AgentResult = {
     role: string;
     result: string;
     confidence: number;
+    thinking?: string;
 };
 
 export type Report = {

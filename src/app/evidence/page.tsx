@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileCheck, CheckCircle, RefreshCw, ArrowRight, Loader2 } from "lucide-react";
@@ -7,20 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForensicData } from "@/hooks/useForensicData";
 import { AgentResult } from "@/types";
 import { AgentIcon } from "@/components/ui/AgentIcon";
-
-// --- Mock Data ---
-// Extended type for simulation
-type SimulationAgent = AgentResult & {
-    thinking: string;
-};
-
-const MOCK_AGENTS: SimulationAgent[] = [
-    { id: "1", name: "Image Integrity", role: "Pattern Analysis", result: "Noise distribution consistent with ISO 3200 sensor profile.", confidence: 99, thinking: "Analyzing sensor pattern noise (PRNU)..." },
-    { id: "2", name: "Scene Physics", role: "Light & Geometry", result: "Shadow fall-off consistent with single key light at 45° elevation.", confidence: 96, thinking: "Calculating volumetric shadow vectors..." },
-    { id: "3", name: "Object Detection", role: "Semantic Recognition", result: "Identified: Civilian Vehicle (Type A), Structure B (Residential).", confidence: 94, thinking: "Running YOLOv8 inference grid..." },
-    { id: "4", name: "Temporal Analyst", role: "Optical Flow", result: "Frame interval 33ms stable. Motion vectors align with camera track.", confidence: 98, thinking: "Mapping frame-to-frame pixel displacement..." },
-    { id: "5", name: "Context", role: "Metadata Extraction", result: "GPS: 34.05°N, 118.24°W. Timestamp verified against solar positioning.", confidence: 99, thinking: "Cross-referencing satellite telemetry..." },
-];
+import { AGENTS_DATA } from "@/lib/constants";
 
 export default function EvidencePage() {
     const router = useRouter();
@@ -32,18 +17,30 @@ export default function EvidencePage() {
 
     // Workflow States
     const [status, setStatus] = useState<"idle" | "analyzing" | "agents" | "complete">("idle");
-    const [completedAgents, setCompletedAgents] = useState<SimulationAgent[]>([]);
+    const [completedAgents, setCompletedAgents] = useState<AgentResult[]>([]);
     const [currentAgentIndex, setCurrentAgentIndex] = useState(-1); // -1 not started
     const [isThinking, setIsThinking] = useState(false); // New state to show "Thinking..." before result
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const audioCtxRef = useRef<AudioContext | null>(null);
 
     // --- Audio ---
     const playSound = useCallback((type: "success" | "agent" | "complete" | "think") => {
-        // ... (Audio Logic Unchanged for now, will fix in next step)
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+        if (!audioCtxRef.current) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                audioCtxRef.current = new AudioContext();
+            }
+        }
+
+        const ctx = audioCtxRef.current;
+        if (!ctx) return;
+
+        // Resume if suspended (browser auto-play policy)
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
@@ -147,6 +144,7 @@ export default function EvidencePage() {
         router.push('/result');
     };
 
+
     // --- Simulation Logic ---
     useEffect(() => {
         if (status === "analyzing") {
@@ -160,14 +158,22 @@ export default function EvidencePage() {
         }
 
         if (status === "agents") {
-            if (currentAgentIndex >= 0 && currentAgentIndex < MOCK_AGENTS.length) {
+            if (currentAgentIndex >= 0 && currentAgentIndex < AGENTS_DATA.length) {
                 if (isThinking) {
                     // "Thinking" Phase
                     // Show "Agent is thinking..." for 3s, then reveal result
                     const timer = setTimeout(() => {
                         setIsThinking(false);
                         // Reveal the card
-                        setCompletedAgents(prev => [...prev, MOCK_AGENTS[currentAgentIndex]]);
+                        const agentDef = AGENTS_DATA[currentAgentIndex];
+                        setCompletedAgents(prev => [...prev, {
+                            id: agentDef.id,
+                            name: agentDef.name,
+                            role: agentDef.role,
+                            result: agentDef.simulation.result,
+                            confidence: agentDef.simulation.confidence,
+                            thinking: agentDef.simulation.thinking
+                        }]);
                         playSound("agent");
                     }, 3000 + Math.random() * 500); // 3s delay as requested
                     return () => clearTimeout(timer);
@@ -177,13 +183,13 @@ export default function EvidencePage() {
                     const timer = setTimeout(() => {
                         setCurrentAgentIndex(prev => prev + 1);
                         setIsThinking(true); // Start thinking for next agent
-                        if (currentAgentIndex + 1 < MOCK_AGENTS.length) {
+                        if (currentAgentIndex + 1 < AGENTS_DATA.length) {
                             playSound("think");
                         }
                     }, 800);
                     return () => clearTimeout(timer);
                 }
-            } else if (currentAgentIndex >= MOCK_AGENTS.length) {
+            } else if (currentAgentIndex >= AGENTS_DATA.length) {
                 // All done
                 const timer = setTimeout(() => {
                     setStatus("complete");
@@ -233,7 +239,7 @@ export default function EvidencePage() {
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
                                 <span className="animate-pulse text-emerald-500">
-                                    {MOCK_AGENTS[currentAgentIndex]?.name} is {MOCK_AGENTS[currentAgentIndex]?.thinking?.toLowerCase() || "processing..."}
+                                    {AGENTS_DATA[currentAgentIndex]?.name} is {AGENTS_DATA[currentAgentIndex]?.simulation.thinking.toLowerCase() || "processing..."}
                                 </span>
                             </>
                         )}
@@ -354,7 +360,7 @@ export default function EvidencePage() {
                             ))}
 
                             {/* Thinking Card (Current Agent) - Only show if current agent is thinking */}
-                            {status === "agents" && isThinking && currentAgentIndex < MOCK_AGENTS.length && (
+                            {status === "agents" && isThinking && currentAgentIndex < AGENTS_DATA.length && (
                                 <motion.div
                                     key="thinking"
                                     initial={{ opacity: 0, scale: 0.95 }}
@@ -364,7 +370,7 @@ export default function EvidencePage() {
                                 >
                                     <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
                                     <span className="animate-pulse">
-                                        {MOCK_AGENTS[currentAgentIndex]?.name} processing...
+                                        {AGENTS_DATA[currentAgentIndex]?.name} processing...
                                     </span>
                                 </motion.div>
                             )}
