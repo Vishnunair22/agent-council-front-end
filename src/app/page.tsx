@@ -1,9 +1,11 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Shield, Search, Layout, Database, Video, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRef, useEffect } from "react";
+import { MOCK_AGENTS } from "@/lib/constants";
+import { AgentIcon } from "@/components/ui/AgentIcon";
 
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,15 +27,6 @@ export default function LandingPage() {
 
   // Content slides up naturally. 
   // Removed contentOpacity/Blur to ensure visibility.
-
-  // Agent data mapped from your PRD 
-  const agents = [
-    { name: "Image Integrity Expert", icon: <Shield />, desc: "Detects manipulation, splicing, and GAN artifacts." },
-    { name: "Scene Reconstruction Expert", icon: <Search />, desc: "Validates lighting, shadows, and perspective physics." },
-    { name: "Object & Weapon Analyst", icon: <Layout />, desc: "Classifies weapons and generates confidence heatmaps." },
-    { name: "Temporal Video Analyst", icon: <Video />, desc: "Inspects frame consistency and deepfake markers." },
-    { name: "Metadata & Context Expert", icon: <Database />, desc: "Analyzes EXIF data and device mismatch alerts." }
-  ];
 
   return (
     <div ref={containerRef} className="relative bg-black text-white">
@@ -57,7 +50,7 @@ export default function LandingPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl md:text-7xl font-bold max-w-4xl mb-4 md:mb-6 tracking-tighter text-white pb-2"
+            className="text-2xl sm:text-4xl md:text-7xl font-bold max-w-4xl mb-4 md:mb-6 tracking-tighter text-white pb-2"
           >
             Multi-Agent Forensic Evidence Analysis System
           </motion.h1>
@@ -90,14 +83,14 @@ export default function LandingPage() {
           <section className="py-20 px-6 bg-slate-900/50 rounded-t-3xl">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Meet the Agents</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
-              {agents.map((agent, i) => (
+              {MOCK_AGENTS.map((agent, i) => (
                 <motion.div
                   key={i}
                   whileHover={{ y: -5 }}
                   className="p-6 rounded-2xl bg-slate-800/50 border border-white/5 flex flex-col items-center text-center hover:border-cyan-500/50 transition-colors"
                 >
                   <div className="p-3 bg-cyan-500/10 text-cyan-500 rounded-xl mb-4">
-                    {agent.icon}
+                    <AgentIcon role={agent.role} />
                   </div>
                   <h3 className="font-semibold text-sm mb-2">{agent.name}</h3>
                   <p className="text-xs text-slate-500 leading-relaxed">{agent.desc}</p>

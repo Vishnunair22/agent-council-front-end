@@ -1,69 +1,30 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Clock, Trash2, CheckCircle, Shield, Search, Layout, Database, Video, AlertTriangle, ChevronDown, Download, FileText, FileJson, FileType } from "lucide-react";
+import { Clock, Trash2, AlertTriangle, ChevronDown, Download, FileText, FileJson, FileType } from "lucide-react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-
-// Use same types
-type AgentResult = {
-    id: string;
-    name: string;
-    role: string;
-    icon?: React.ReactNode;
-    result: string;
-    confidence: number;
-};
-
-type Report = {
-    id: string;
-    fileName: string;
-    timestamp: string;
-    summary: string;
-    agents: AgentResult[];
-};
-
-// Helper to remap icons
-const getIconForRole = (role: string) => {
-    if (role.includes("Artifact")) return <Shield />;
-    if (role.includes("Lighting")) return <Search />;
-    if (role.includes("Weapon")) return <Layout />;
-    if (role.includes("Frame")) return <Video />;
-    if (role.includes("Metadata")) return <Database />;
-    return <CheckCircle />;
-};
+import { AgentIcon } from "@/components/ui/AgentIcon";
+import { useForensicData } from "@/hooks/useForensicData";
 
 export default function ResultPage() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<"result" | "history">("result");
-    const [currentReport, setCurrentReport] = useState<Report | null>(null);
-    const [history, setHistory] = useState<Report[]>([]);
+
+    // Use Hook
+    const { history, currentReport, deleteFromHistory, clearHistory } = useForensicData();
 
     // Refinement States
     const [showAgents, setShowAgents] = useState(false);
     const [exportOpen, setExportOpen] = useState(false);
 
-    // --- Load Data ---
-    useEffect(() => {
-        const savedCurrent = localStorage.getItem("fc_current_report");
-        const savedHistory = localStorage.getItem("fc_history");
-
-        if (savedCurrent) setCurrentReport(JSON.parse(savedCurrent));
-        if (savedHistory) setHistory(JSON.parse(savedHistory));
-    }, []);
-
     // --- Handlers ---
     const handleDeleteOne = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        const newHistory = history.filter(h => h.id !== id);
-        setHistory(newHistory);
-        localStorage.setItem("fc_history", JSON.stringify(newHistory));
+        deleteFromHistory(id);
     };
 
     const handleClearAll = () => {
-        setHistory([]);
-        localStorage.removeItem("fc_history");
+        clearHistory();
     };
 
     const formatDate = (isoString: string) => {
@@ -211,7 +172,7 @@ export default function ResultPage() {
                                                         <div key={i} className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
                                                             <div className="flex items-center gap-3 mb-3">
                                                                 <div className="p-2 bg-slate-800 rounded-lg text-emerald-400">
-                                                                    {getIconForRole(agent.role)}
+                                                                    <AgentIcon role={agent.role} />
                                                                 </div>
                                                                 <div>
                                                                     <h4 className="font-bold text-sm">{agent.name}</h4>

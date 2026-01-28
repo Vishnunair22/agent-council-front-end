@@ -2,30 +2,29 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileCheck, Shield, Search, Layout, Database, Video, CheckCircle, RefreshCw, ArrowRight, Loader2 } from "lucide-react";
+import { Upload, FileCheck, CheckCircle, RefreshCw, ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useForensicData } from "@/hooks/useForensicData";
+import { AgentResult } from "@/types";
+import { AgentIcon } from "@/components/ui/AgentIcon";
 
 // --- Mock Data ---
-type AgentResult = {
-    id: string;
-    name: string;
-    role: string;
-    icon: React.ReactNode;
-    result: string;
-    confidence: number;
+// Extended type for simulation
+type SimulationAgent = AgentResult & {
     thinking: string;
 };
 
-const MOCK_AGENTS: AgentResult[] = [
-    { id: "1", name: "Image Integrity", role: "Pattern Analysis", icon: <Shield />, result: "Noise distribution consistent with ISO 3200 sensor profile.", confidence: 99, thinking: "Analyzing sensor pattern noise (PRNU)..." },
-    { id: "2", name: "Scene Physics", role: "Light & Geometry", icon: <Search />, result: "Shadow fall-off consistent with single key light at 45° elevation.", confidence: 96, thinking: "Calculating volumetric shadow vectors..." },
-    { id: "3", name: "Object Detection", role: "Semantic Recognition", icon: <Layout />, result: "Identified: Civilian Vehicle (Type A), Structure B (Residential).", confidence: 94, thinking: "Running YOLOv8 inference grid..." },
-    { id: "4", name: "Temporal Analyst", icon: <Video />, role: "Optical Flow", result: "Frame interval 33ms stable. Motion vectors align with camera track.", confidence: 98, thinking: "Mapping frame-to-frame pixel displacement..." },
-    { id: "5", name: "Context", role: "Metadata Extraction", icon: <Database />, result: "GPS: 34.05°N, 118.24°W. Timestamp verified against solar positioning.", confidence: 99, thinking: "Cross-referencing satellite telemetry..." },
+const MOCK_AGENTS: SimulationAgent[] = [
+    { id: "1", name: "Image Integrity", role: "Pattern Analysis", result: "Noise distribution consistent with ISO 3200 sensor profile.", confidence: 99, thinking: "Analyzing sensor pattern noise (PRNU)..." },
+    { id: "2", name: "Scene Physics", role: "Light & Geometry", result: "Shadow fall-off consistent with single key light at 45° elevation.", confidence: 96, thinking: "Calculating volumetric shadow vectors..." },
+    { id: "3", name: "Object Detection", role: "Semantic Recognition", result: "Identified: Civilian Vehicle (Type A), Structure B (Residential).", confidence: 94, thinking: "Running YOLOv8 inference grid..." },
+    { id: "4", name: "Temporal Analyst", role: "Optical Flow", result: "Frame interval 33ms stable. Motion vectors align with camera track.", confidence: 98, thinking: "Mapping frame-to-frame pixel displacement..." },
+    { id: "5", name: "Context", role: "Metadata Extraction", result: "GPS: 34.05°N, 118.24°W. Timestamp verified against solar positioning.", confidence: 99, thinking: "Cross-referencing satellite telemetry..." },
 ];
 
 export default function EvidencePage() {
     const router = useRouter();
+    const { saveCurrentReport, addToHistory } = useForensicData();
 
     // --- State ---
     const [dragActive, setDragActive] = useState(false);
@@ -33,7 +32,7 @@ export default function EvidencePage() {
 
     // Workflow States
     const [status, setStatus] = useState<"idle" | "analyzing" | "agents" | "complete">("idle");
-    const [completedAgents, setCompletedAgents] = useState<AgentResult[]>([]);
+    const [completedAgents, setCompletedAgents] = useState<SimulationAgent[]>([]);
     const [currentAgentIndex, setCurrentAgentIndex] = useState(-1); // -1 not started
     const [isThinking, setIsThinking] = useState(false); // New state to show "Thinking..." before result
 
@@ -41,7 +40,8 @@ export default function EvidencePage() {
 
     // --- Audio ---
     const playSound = useCallback((type: "success" | "agent" | "complete" | "think") => {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        // ... (Audio Logic Unchanged for now, will fix in next step)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();
@@ -124,19 +124,25 @@ export default function EvidencePage() {
     const acceptAnalysis = (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        // Save to LocalStorage
+        // Strip extra properties (thinking, icon) for storage
+        const cleanAgents: AgentResult[] = completedAgents.map(a => ({
+            id: a.id,
+            name: a.name,
+            role: a.role,
+            result: a.result,
+            confidence: a.confidence
+        }));
+
         const reportData = {
             id: Date.now().toString(),
             fileName: file?.name || "Unknown File",
             timestamp: new Date().toISOString(),
             summary: "Comprehensive multi-agent extraction complete. All data streams verified and cross-referenced.",
-            agents: completedAgents
+            agents: cleanAgents
         };
 
-        localStorage.setItem('fc_current_report', JSON.stringify(reportData));
-
-        const existingHistory = JSON.parse(localStorage.getItem('fc_history') || "[]");
-        localStorage.setItem('fc_history', JSON.stringify([reportData, ...existingHistory]));
+        saveCurrentReport(reportData);
+        addToHistory(reportData);
 
         router.push('/result');
     };
@@ -332,7 +338,7 @@ export default function EvidencePage() {
                                     className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg flex items-start space-x-4 shadow-xl"
                                 >
                                     <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl">
-                                        {agent.icon}
+                                        <AgentIcon role={agent.role} />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-white relative flex items-center gap-2">
