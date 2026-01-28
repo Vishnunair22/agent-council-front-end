@@ -57,7 +57,7 @@ export default function LandingPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-7xl font-bold max-w-4xl mb-6 tracking-tighter text-white pb-2"
+            className="text-3xl sm:text-4xl md:text-7xl font-bold max-w-4xl mb-4 md:mb-6 tracking-tighter text-white pb-2"
           >
             Multi-Agent Forensic Evidence Analysis System
           </motion.h1>
@@ -65,7 +65,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-white text-lg max-w-2xl mb-10"
+            className="text-white text-base sm:text-lg max-w-2xl mb-6 md:mb-10"
           >
             This system leverages multiple intelligent agents that analyze digital forensic evidence and compile those insights into a cohesive report.
           </motion.p>
