@@ -225,10 +225,10 @@ export default function EvidencePage() {
                     layout
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center"
+                    className="text-center w-full max-w-md"
                 >
                     <h1 className="text-2xl md:text-4xl font-bold mb-2">Evidence Intake</h1>
-                    <p className="text-slate-400 h-6 min-h-[1.5rem] flex items-center justify-center gap-2">
+                    <p className="text-slate-400 h-6 min-h-[1.5rem] flex items-center justify-center gap-2 mb-4">
                         {status === "idle" && "Upload digital media for forensic analysis."}
                         {status === "analyzing" && (
                             <>
@@ -248,6 +248,20 @@ export default function EvidencePage() {
                         )}
                         {status === "complete" && "Analysis Complete. Review findings below."}
                     </p>
+
+                    {/* Progress Bar */}
+                    {(status === "agents" || status === "analyzing") && (
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-8">
+                            <motion.div
+                                className="bg-emerald-500 h-full"
+                                initial={{ width: 0 }}
+                                animate={{
+                                    width: `${((Math.max(0, currentAgentIndex) + (isThinking ? 0.5 : 1)) / AGENTS_DATA.length) * 100}%`
+                                }}
+                                transition={{ duration: 0.5, ease: "easeInOut" }}
+                            />
+                        </div>
+                    )}
                 </motion.div>
 
 

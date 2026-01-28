@@ -118,7 +118,19 @@ export default function ResultPage() {
                                                                 <button className="w-full px-4 py-3 text-left bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-3 transition-colors text-sm border-t border-white/5">
                                                                     <FileType className="w-4 h-4" /> DOCX Format
                                                                 </button>
-                                                                <button className="w-full px-4 py-3 text-left bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-3 transition-colors text-sm border-t border-white/5">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentReport, null, 2));
+                                                                        const downloadAnchorNode = document.createElement('a');
+                                                                        downloadAnchorNode.setAttribute("href", dataStr);
+                                                                        downloadAnchorNode.setAttribute("download", `forensic_report_${currentReport.id}.json`);
+                                                                        document.body.appendChild(downloadAnchorNode);
+                                                                        downloadAnchorNode.click();
+                                                                        downloadAnchorNode.remove();
+                                                                        setExportOpen(false);
+                                                                    }}
+                                                                    className="w-full px-4 py-3 text-left bg-slate-800 hover:bg-slate-700 text-emerald-400 flex items-center gap-3 transition-colors text-sm border-t border-white/5"
+                                                                >
                                                                     <FileJson className="w-4 h-4" /> JSON Data
                                                                 </button>
                                                             </motion.div>
