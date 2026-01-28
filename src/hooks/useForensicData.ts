@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { Report } from "@/types";
 import { HistorySchema, ReportSchema } from "@/lib/schemas";

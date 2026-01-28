@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { AGENTS_DATA, AgentDefinition } from "@/lib/constants";
 import { AgentResult } from "@/types";
