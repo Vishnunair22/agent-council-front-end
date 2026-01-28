@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { AGENTS_DATA, AgentDefinition } from "@/lib/constants";
+import { AGENTS_DATA } from "@/lib/constants";
 import { AgentResult } from "@/types";
+
+type SimulationStatus = "idle" | "analyzing" | "initiating" | "processing" | "complete";
 
 type UseSimulationProps = {
     onAgentComplete?: (result: AgentResult) => void;
@@ -11,113 +13,129 @@ type UseSimulationProps = {
 };
 
 export const useSimulation = ({ onAgentComplete, onComplete, playSound }: UseSimulationProps) => {
-    const [status, setStatus] = useState<"idle" | "analyzing" | "agents" | "complete">("idle");
+    const [status, setStatus] = useState<SimulationStatus>("idle");
+    const [completedAgents, setCompletedAgents] = useState<AgentResult[]>([]);
     const [currentAgentIndex, setCurrentAgentIndex] = useState(-1);
-    const [isThinking, setIsThinking] = useState(false);
     const [currentThinkingPhrase, setCurrentThinkingPhrase] = useState("");
 
-    // Internal refs for logic management
     const thinkingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const mainTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const startSimulation = useCallback(() => {
         setStatus("analyzing");
+        setCompletedAgents([]);
+        setCurrentAgentIndex(-1);
     }, []);
 
     const resetSimulation = useCallback(() => {
         setStatus("idle");
+        setCompletedAgents([]);
         setCurrentAgentIndex(-1);
-        setIsThinking(false);
         setCurrentThinkingPhrase("");
+
+        if (thinkingIntervalRef.current) {
+            clearInterval(thinkingIntervalRef.current);
+            thinkingIntervalRef.current = null;
+        }
+        if (mainTimerRef.current) {
+            clearTimeout(mainTimerRef.current);
+            mainTimerRef.current = null;
+        }
     }, []);
 
-    // Main Simulation Loop
+    // Main simulation orchestration
     useEffect(() => {
+        console.log('[Simulation] Status:', status, 'Agent Index:', currentAgentIndex);
+
         if (status === "analyzing") {
-            const timer = setTimeout(() => {
-                setStatus("agents");
+            console.log('[Simulation] Starting analysis phase (4s)');
+            // Step 1: Analyzing Evidence (4s)
+            mainTimerRef.current = setTimeout(() => {
+                console.log('[Simulation] Analysis complete, moving to initiating');
+                setStatus("initiating");
+            }, 4000);
+        } else if (status === "initiating") {
+            console.log('[Simulation] Initiating agents (1s)');
+            // Step 2: Initiating Agents (brief transition)
+            mainTimerRef.current = setTimeout(() => {
+                console.log('[Simulation] Starting processing, agent 0');
+                setStatus("processing");
                 setCurrentAgentIndex(0);
-                setIsThinking(true);
-            }, 1500);
-            return () => clearTimeout(timer);
-        }
+            }, 1000);
+        } else if (status === "processing" && currentAgentIndex >= 0 && currentAgentIndex < AGENTS_DATA.length) {
+            // Step 3: Process each agent sequentially
+            const agent = AGENTS_DATA[currentAgentIndex];
+            console.log(`[Simulation] Processing agent ${currentAgentIndex}: ${agent.name}`);
 
-        if (status === "agents") {
-            if (currentAgentIndex >= 0 && currentAgentIndex < AGENTS_DATA.length) {
-                const agent = AGENTS_DATA[currentAgentIndex];
+            // Start thinking phrase rotation
+            let phraseIndex = 0;
+            setCurrentThinkingPhrase(agent.simulation.thinkingPhrases?.[0] || agent.simulation.thinking);
 
-                if (isThinking) {
-                    // Start Dynamic Thinking Phrases
-                    setCurrentThinkingPhrase(agent.simulation.thinking); // Reset to default
-                    let phraseIndex = 0;
+            if (agent.simulation.thinkingPhrases) {
+                thinkingIntervalRef.current = setInterval(() => {
+                    phraseIndex = (phraseIndex + 1) % agent.simulation.thinkingPhrases!.length;
+                    setCurrentThinkingPhrase(agent.simulation.thinkingPhrases![phraseIndex]);
+                }, 800);
+            }
 
-                    // Rotate phrases
-                    if (!thinkingIntervalRef.current && agent.simulation.thinkingPhrases) {
-                        thinkingIntervalRef.current = setInterval(() => {
-                            const phrases = agent.simulation.thinkingPhrases;
-                            if (phrases) {
-                                setCurrentThinkingPhrase(phrases[phraseIndex % phrases.length]);
-                                phraseIndex++;
-                            }
-                        }, 800);
-                    }
+            // Agent analysis delay (4s)
+            mainTimerRef.current = setTimeout(() => {
+                console.log(`[Simulation] Agent ${currentAgentIndex} complete`);
 
-                    const timer = setTimeout(() => {
-                        // Stop rotation
-                        if (thinkingIntervalRef.current) {
-                            clearInterval(thinkingIntervalRef.current);
-                            thinkingIntervalRef.current = null;
-                        }
-
-                        setIsThinking(false);
-
-                        const result: AgentResult = {
-                            id: agent.id,
-                            name: agent.name,
-                            role: agent.role,
-                            result: agent.simulation.result,
-                            confidence: agent.simulation.confidence,
-                            thinking: agent.simulation.thinking // Keep original thinking for display if needed
-                        };
-
-                        onAgentComplete?.(result);
-                        playSound?.("agent");
-
-                    }, 3000 + Math.random() * 500);
-
-                    return () => {
-                        clearTimeout(timer);
-                        if (thinkingIntervalRef.current) {
-                            clearInterval(thinkingIntervalRef.current);
-                            thinkingIntervalRef.current = null;
-                        }
-                    };
-                } else {
-                    // Pause between agents
-                    const timer = setTimeout(() => {
-                        setCurrentAgentIndex(prev => prev + 1);
-                        setIsThinking(true);
-
-                        if (currentAgentIndex + 1 < AGENTS_DATA.length) {
-                            playSound?.("think");
-                        }
-                    }, 800);
-                    return () => clearTimeout(timer);
+                // Stop thinking rotation
+                if (thinkingIntervalRef.current) {
+                    clearInterval(thinkingIntervalRef.current);
+                    thinkingIntervalRef.current = null;
                 }
-            } else if (currentAgentIndex >= AGENTS_DATA.length) {
-                const timer = setTimeout(() => {
+
+                // Create result
+                const result: AgentResult = {
+                    id: agent.id,
+                    name: agent.name,
+                    role: agent.role,
+                    result: agent.simulation.result,
+                    confidence: agent.simulation.confidence,
+                    thinking: agent.simulation.thinking
+                };
+
+                // Add to completed agents
+                setCompletedAgents(prev => {
+                    console.log('[Simulation] Adding agent to completed list, prev length:', prev.length);
+                    return [...prev, result];
+                });
+                onAgentComplete?.(result);
+                playSound?.("agent");
+
+                // Move to next agent or complete
+                if (currentAgentIndex + 1 < AGENTS_DATA.length) {
+                    console.log(`[Simulation] Moving to agent ${currentAgentIndex + 1}`);
+                    setCurrentAgentIndex(prev => prev + 1);
+                } else {
+                    console.log('[Simulation] All agents complete');
                     setStatus("complete");
                     onComplete?.();
                     playSound?.("complete");
-                }, 500);
-                return () => clearTimeout(timer);
-            }
+                }
+            }, 4000);
         }
-    }, [status, currentAgentIndex, isThinking, onAgentComplete, onComplete, playSound]);
+
+        // Cleanup
+        return () => {
+            if (mainTimerRef.current) {
+                clearTimeout(mainTimerRef.current);
+                mainTimerRef.current = null;
+            }
+            if (thinkingIntervalRef.current) {
+                clearInterval(thinkingIntervalRef.current);
+                thinkingIntervalRef.current = null;
+            }
+        };
+    }, [status, currentAgentIndex]); // Removed callback dependencies to prevent timer cancellation
 
     return {
         status,
         currentAgentIndex,
-        isThinking,
+        completedAgents,
         currentThinkingPhrase,
         startSimulation,
         resetSimulation,

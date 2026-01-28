@@ -18,7 +18,6 @@ export default function EvidencePage() {
     const [dragActive, setDragActive] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [completedAgents, setCompletedAgents] = useState<AgentResult[]>([]);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
@@ -97,7 +96,7 @@ export default function EvidencePage() {
     const {
         status,
         currentAgentIndex,
-        isThinking,
+        completedAgents: simulationAgents,
         currentThinkingPhrase,
         startSimulation,
         resetSimulation,
@@ -105,10 +104,10 @@ export default function EvidencePage() {
     } = useSimulation({
         playSound,
         onAgentComplete: (result) => {
-            setCompletedAgents(prev => [...prev, result]);
+            // Agent completed callback
         },
         onComplete: () => {
-            // Any dedicated completion logic
+            // Simulation complete
         }
     });
 
@@ -159,7 +158,6 @@ export default function EvidencePage() {
     const handleReset = (e: React.MouseEvent) => {
         e.stopPropagation();
         setFile(null);
-        setCompletedAgents([]);
         setError(null);
         resetSimulation();
     };
@@ -168,7 +166,7 @@ export default function EvidencePage() {
         e.stopPropagation();
 
         // Strip extra properties (thinking, icon) for storage
-        const cleanAgents: AgentResult[] = completedAgents.map(a => ({
+        const cleanAgents: AgentResult[] = simulationAgents.map((a: AgentResult) => ({
             id: a.id,
             name: a.name,
             role: a.role,
@@ -180,14 +178,13 @@ export default function EvidencePage() {
             id: Date.now().toString(),
             fileName: file?.name || "Unknown File",
             timestamp: new Date().toISOString(),
-            summary: "Comprehensive multi-agent extraction complete. All data streams verified and cross-referenced.",
-            agents: cleanAgents
+            agents: cleanAgents,
+            summary: `Analyzed ${cleanAgents.length} forensic indicators.`
         };
 
         saveCurrentReport(reportData);
         addToHistory(reportData);
-
-        router.push('/result');
+        router.push("/result");
     };
 
 
@@ -222,10 +219,15 @@ export default function EvidencePage() {
                         {status === "idle" && "Upload digital media for forensic analysis."}
                         {status === "analyzing" && (
                             <>
-                                <Loader2 className="w-4 h-4 animate-spin" /> Initializing autonomous agents...
+                                <Loader2 className="w-4 h-4 animate-spin" /> Analyzing Evidence...
                             </>
                         )}
-                        {status === "agents" && isThinking && (
+                        {status === "initiating" && (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" /> Initiating Agents...
+                            </>
+                        )}
+                        {status === "processing" && currentAgentIndex >= 0 && (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
                                 <span className="animate-pulse text-emerald-500 font-mono">
@@ -233,20 +235,17 @@ export default function EvidencePage() {
                                 </span>
                             </>
                         )}
-                        {status === "agents" && !isThinking && (
-                            <span className="text-slate-500">Result generated.</span>
-                        )}
                         {status === "complete" && "Analysis Complete. Review findings below."}
                     </p>
 
                     {/* Progress Bar */}
-                    {(status === "agents" || status === "analyzing") && (
+                    {(status === "processing" || status === "analyzing" || status === "initiating") && (
                         <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-8">
                             <motion.div
                                 className="bg-emerald-500 h-full"
                                 initial={{ width: 0 }}
                                 animate={{
-                                    width: `${((Math.max(0, currentAgentIndex) + (isThinking ? 0.5 : 1)) / totalAgents) * 100}%`
+                                    width: status === "analyzing" ? "10%" : status === "initiating" ? "15%" : `${((currentAgentIndex + 1) / totalAgents) * 100}%`
                                 }}
                                 transition={{ duration: 0.5, ease: "easeInOut" }}
                             />
@@ -348,13 +347,13 @@ export default function EvidencePage() {
 
 
                 {/* --- Analysis Grid --- */}
-                {(status === "agents" || status === "complete") && (
+                {(status === "processing" || status === "complete") && (
                     <motion.div
                         className="w-full grid grid-cols-1 md:grid-cols-2 gap-4"
                         layout
                     >
                         <AnimatePresence>
-                            {completedAgents.map((agent, i) => (
+                            {simulationAgents.map((agent, i) => (
                                 <motion.div
                                     key={agent.id}
                                     initial={{ opacity: 0, x: -20, filter: "blur(10px)" }}
@@ -378,8 +377,8 @@ export default function EvidencePage() {
                                 </motion.div>
                             ))}
 
-                            {/* Thinking Card (Current Agent) - Only show if current agent is thinking */}
-                            {status === "agents" && isThinking && currentAgentIndex < totalAgents && (
+                            {/* Thinking Card (Current Agent) - Only show if current agent is processing */}
+                            {status === "processing" && currentAgentIndex >= 0 && currentAgentIndex < totalAgents && (
                                 <motion.div
                                     key="thinking"
                                     initial={{ opacity: 0, scale: 0.95 }}
