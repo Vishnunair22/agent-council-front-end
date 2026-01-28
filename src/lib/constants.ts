@@ -9,6 +9,7 @@ export type AgentDefinition = {
         result: string;
         confidence: number;
         thinking: string;
+        thinkingPhrases: string[]; // Dynamic sub-tasks
     }
 };
 
@@ -21,7 +22,8 @@ export const AGENTS_DATA: AgentDefinition[] = [
         simulation: {
             result: "Noise distribution consistent with ISO 3200 sensor profile.",
             confidence: 99,
-            thinking: "Analyzing sensor pattern noise (PRNU)..."
+            thinking: "Analyzing sensor pattern noise (PRNU)...",
+            thinkingPhrases: ["Checking error level analysis...", "Verifying quantization tables...", "Scanning for copy-move cloning..."]
         }
     },
     {
@@ -32,7 +34,8 @@ export const AGENTS_DATA: AgentDefinition[] = [
         simulation: {
             result: "Shadow fall-off consistent with single key light at 45° elevation.",
             confidence: 96,
-            thinking: "Calculating volumetric shadow vectors..."
+            thinking: "Calculating volumetric shadow vectors...",
+            thinkingPhrases: ["Mapping vanishing points...", "Simulating light path bounces...", "Checking reflection consistency..."]
         }
     },
     {
@@ -43,7 +46,8 @@ export const AGENTS_DATA: AgentDefinition[] = [
         simulation: {
             result: "Identified: Civilian Vehicle (Type A), Structure B (Residential).",
             confidence: 94,
-            thinking: "Running YOLOv8 inference grid..."
+            thinking: "Running YOLOv8 inference grid...",
+            thinkingPhrases: ["Classifying obscure shapes...", "Comparing against ballistics DB...", "Generating heatmaps..."]
         }
     },
     {
@@ -54,7 +58,8 @@ export const AGENTS_DATA: AgentDefinition[] = [
         simulation: {
             result: "Frame interval 33ms stable. Motion vectors align with camera track.",
             confidence: 98,
-            thinking: "Mapping frame-to-frame pixel displacement..."
+            thinking: "Mapping frame-to-frame pixel displacement...",
+            thinkingPhrases: ["Analyzing optical flow...", "Detecting face-swapping artifacts...", "Checking audio-visual sync..."]
         }
     },
     {
@@ -65,7 +70,8 @@ export const AGENTS_DATA: AgentDefinition[] = [
         simulation: {
             result: "GPS: 34.05°N, 118.24°W. Timestamp verified against solar positioning.",
             confidence: 99,
-            thinking: "Cross-referencing satellite telemetry..."
+            thinking: "Cross-referencing satellite telemetry...",
+            thinkingPhrases: ["Parsing EXIF/XMP tags...", "Verifying device signature...", "Checking weather at location..."]
         }
     }
 ];

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Trash2, AlertTriangle, ChevronDown, Download, FileText, FileJson, FileType } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,14 @@ export default function ResultPage() {
     // Refinement States
     const [showAgents, setShowAgents] = useState(true);
     const [exportOpen, setExportOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Prevent hydration mismatch
+    if (!mounted) return null;
 
     // --- Handlers ---
     const handleDeleteOne = (id: string, e: React.MouseEvent) => {
@@ -151,7 +159,7 @@ export default function ResultPage() {
                                             <div className="bg-slate-900/50 rounded-xl p-4 border border-white/5 mt-4">
                                                 <h4 className="text-xs md:text-sm font-bold text-slate-300 mb-3 uppercase tracking-wider">Key Signals Detected</h4>
                                                 <ul className="space-y-2">
-                                                    {currentReport.agents.map((agent, i) => (
+                                                    {currentReport.agents.map((agent: any, i: number) => (
                                                         <li key={i} className="flex items-start text-sm text-slate-400 gap-2">
                                                             <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                                                             <span>
@@ -185,7 +193,7 @@ export default function ResultPage() {
                                                 className="overflow-hidden"
                                             >
                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                                                    {currentReport.agents.map((agent, i) => (
+                                                    {currentReport.agents.map((agent: any, i: number) => (
                                                         <div key={i} className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
                                                             <div className="flex items-center gap-3 mb-3">
                                                                 <div className="p-2 bg-slate-800 rounded-lg text-emerald-400">
@@ -246,7 +254,7 @@ export default function ResultPage() {
 
                             <div className="space-y-4">
                                 <AnimatePresence>
-                                    {history.length > 0 ? history.map((item) => (
+                                    {history.length > 0 ? history.map((item: any) => (
                                         <motion.div
                                             key={item.id}
                                             layout
