@@ -1,56 +1,101 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileCheck, AlertCircle } from "lucide-react";
+import { Upload, FileCheck, Shield, Search, Layout, Database, Video, CheckCircle, RefreshCw, ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+// --- Mock Data ---
+type AgentResult = {
+    id: string;
+    name: string;
+    role: string;
+    icon: React.ReactNode;
+    result: string;
+    confidence: number;
+    thinking: string;
+};
+
+const MOCK_AGENTS: AgentResult[] = [
+    { id: "1", name: "Image Integrity", role: "Pattern Analysis", icon: <Shield />, result: "Noise distribution consistent with ISO 3200 sensor profile.", confidence: 99, thinking: "Analyzing sensor pattern noise (PRNU)..." },
+    { id: "2", name: "Scene Physics", role: "Light & Geometry", icon: <Search />, result: "Shadow fall-off consistent with single key light at 45° elevation.", confidence: 96, thinking: "Calculating volumetric shadow vectors..." },
+    { id: "3", name: "Object Detection", role: "Semantic Recognition", icon: <Layout />, result: "Identified: Civilian Vehicle (Type A), Structure B (Residential).", confidence: 94, thinking: "Running YOLOv8 inference grid..." },
+    { id: "4", name: "Temporal Analyst", icon: <Video />, role: "Optical Flow", result: "Frame interval 33ms stable. Motion vectors align with camera track.", confidence: 98, thinking: "Mapping frame-to-frame pixel displacement..." },
+    { id: "5", name: "Context", role: "Metadata Extraction", icon: <Database />, result: "GPS: 34.05°N, 118.24°W. Timestamp verified against solar positioning.", confidence: 99, thinking: "Cross-referencing satellite telemetry..." },
+];
+
 export default function EvidencePage() {
-    const [dragActive, setDragActive] = useState(false);
-    const [file, setFile] = useState<File | null>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
-    // Sound Effect using Web Audio API
-    const playSuccessSound = useCallback(() => {
+    // --- State ---
+    const [dragActive, setDragActive] = useState(false);
+    const [file, setFile] = useState<File | null>(null);
+
+    // Workflow States
+    const [status, setStatus] = useState<"idle" | "analyzing" | "agents" | "complete">("idle");
+    const [completedAgents, setCompletedAgents] = useState<AgentResult[]>([]);
+    const [currentAgentIndex, setCurrentAgentIndex] = useState(-1); // -1 not started
+    const [isThinking, setIsThinking] = useState(false); // New state to show "Thinking..." before result
+
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // --- Audio ---
+    const playSound = useCallback((type: "success" | "agent" | "complete" | "think") => {
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
         if (!AudioContext) return;
-
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-
         osc.connect(gain);
         gain.connect(ctx.destination);
 
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-        osc.frequency.exponentialRampToValueAtTime(1046.5, ctx.currentTime + 0.1); // C6
-
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
+        if (type === "success") {
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1046.5, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+        } else if (type === "agent") {
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(440, ctx.currentTime); // A4
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.1);
+        } else if (type === "think") {
+            // Subtle low blip for thinking start
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(220, ctx.currentTime);
+            gain.gain.setValueAtTime(0.02, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.05);
+        } else if (type === "complete") {
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.5);
+        }
     }, []);
 
+    // --- Handlers ---
     const handleDrag = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.type === "dragenter" || e.type === "dragover") {
-            setDragActive(true);
-        } else if (e.type === "dragleave") {
-            setDragActive(false);
-        }
+        e.preventDefault(); e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+        else if (e.type === "dragleave") setDragActive(false);
     };
 
     const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             setFile(e.dataTransfer.files[0]);
-            playSuccessSound();
+            playSound("success");
         }
     };
 
@@ -58,19 +103,100 @@ export default function EvidencePage() {
         e.preventDefault();
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
-            playSuccessSound();
+            playSound("success");
         }
     };
 
-    const onButtonClick = () => {
-        inputRef.current?.click();
+    const startAnalysis = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setStatus("analyzing");
     };
+
+    const resetAnalysis = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setFile(null);
+        setStatus("idle");
+        setCompletedAgents([]);
+        setCurrentAgentIndex(-1);
+        setIsThinking(false);
+    };
+
+    const acceptAnalysis = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        // Save to LocalStorage
+        const reportData = {
+            id: Date.now().toString(),
+            fileName: file?.name || "Unknown File",
+            timestamp: new Date().toISOString(),
+            summary: "Comprehensive multi-agent extraction complete. All data streams verified and cross-referenced.",
+            agents: completedAgents
+        };
+
+        localStorage.setItem('fc_current_report', JSON.stringify(reportData));
+
+        const existingHistory = JSON.parse(localStorage.getItem('fc_history') || "[]");
+        localStorage.setItem('fc_history', JSON.stringify([reportData, ...existingHistory]));
+
+        router.push('/result');
+    };
+
+    // --- Simulation Logic ---
+    useEffect(() => {
+        if (status === "analyzing") {
+            // Step 1: "Initializing..." -> Start Agents
+            const timer = setTimeout(() => {
+                setStatus("agents");
+                setCurrentAgentIndex(0);
+                setIsThinking(true);
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+
+        if (status === "agents") {
+            if (currentAgentIndex >= 0 && currentAgentIndex < MOCK_AGENTS.length) {
+                if (isThinking) {
+                    // "Thinking" Phase
+                    // Show "Agent is thinking..." for 3s, then reveal result
+                    const timer = setTimeout(() => {
+                        setIsThinking(false);
+                        // Reveal the card
+                        setCompletedAgents(prev => [...prev, MOCK_AGENTS[currentAgentIndex]]);
+                        playSound("agent");
+                    }, 3000 + Math.random() * 500); // 3s delay as requested
+                    return () => clearTimeout(timer);
+                } else {
+                    // "Next Agent" Phase
+                    // Pause briefly after reveal before starting next agent
+                    const timer = setTimeout(() => {
+                        setCurrentAgentIndex(prev => prev + 1);
+                        setIsThinking(true); // Start thinking for next agent
+                        if (currentAgentIndex + 1 < MOCK_AGENTS.length) {
+                            playSound("think");
+                        }
+                    }, 800);
+                    return () => clearTimeout(timer);
+                }
+            } else if (currentAgentIndex >= MOCK_AGENTS.length) {
+                // All done
+                const timer = setTimeout(() => {
+                    setStatus("complete");
+                    playSound("complete");
+                }, 500);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [status, currentAgentIndex, isThinking, playSound]);
+
 
     return (
         <div
-            className="flex min-h-screen flex-col items-center justify-center bg-black text-white p-6 cursor-pointer"
+            className="flex min-h-screen flex-col items-center justify-center bg-black text-white p-6 cursor-pointer overflow-hidden"
             onClick={() => router.push('/')}
         >
+            {/* Background Gradients */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/50 via-black to-black -z-50" />
+
             <header className="absolute top-0 w-full p-6 flex items-center justify-between border-b border-white/10 backdrop-blur-md z-50">
                 <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-emerald-500 rounded flex items-center justify-center font-bold text-slate-900">FC</div>
@@ -79,84 +205,190 @@ export default function EvidencePage() {
             </header>
 
             <main
-                className="w-full max-w-2xl flex flex-col items-center gap-8 cursor-auto"
+                className="w-full max-w-4xl flex flex-col items-center gap-8 cursor-auto z-10"
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* --- Header --- */}
                 <motion.div
+                    layout
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center"
                 >
-                    <h1 className="text-4xl font-bold mb-4">Evidence Intake</h1>
-                    <p className="text-slate-400">Upload digital media for forensic analysis.</p>
+                    <h1 className="text-4xl font-bold mb-2">Evidence Intake</h1>
+                    <p className="text-slate-400 h-6 min-h-[1.5rem] flex items-center justify-center gap-2">
+                        {status === "idle" && "Upload digital media for forensic analysis."}
+                        {status === "analyzing" && (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" /> Initializing autonomous agents...
+                            </>
+                        )}
+                        {status === "agents" && isThinking && (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                                <span className="animate-pulse text-emerald-500">
+                                    {MOCK_AGENTS[currentAgentIndex]?.name} is {MOCK_AGENTS[currentAgentIndex]?.thinking?.toLowerCase() || "processing..."}
+                                </span>
+                            </>
+                        )}
+                        {status === "agents" && !isThinking && (
+                            <span className="text-slate-500">Result generated.</span>
+                        )}
+                        {status === "complete" && "Analysis Complete. Review findings below."}
+                    </p>
                 </motion.div>
 
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="w-full"
-                >
-                    <div
-                        className={`relative w-full h-64 rounded-3xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden ${dragActive
-                                ? "border-emerald-500 bg-emerald-500/10"
-                                : "border-white/20 hover:border-white/40 hover:bg-white/5"
-                            }`}
-                        onDragEnter={handleDrag}
-                        onDragLeave={handleDrag}
-                        onDragOver={handleDrag}
-                        onDrop={handleDrop}
-                        onClick={onButtonClick}
-                    >
-                        <input
-                            ref={inputRef}
-                            type="file"
-                            className="hidden"
-                            onChange={handleChange}
-                            accept="image/*,video/*"
-                        />
 
-                        <AnimatePresence mode="wait">
-                            {file ? (
+                {/* --- Upload Zone (Hidden when analyzing starts) --- */}
+                <AnimatePresence>
+                    {status === "idle" && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                            className="w-full max-w-2xl"
+                        >
+                            <div
+                                className={`relative w-full h-48 md:h-64 rounded-3xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden ${dragActive
+                                    ? "border-emerald-500 bg-emerald-500/10"
+                                    : "border-white/20 hover:border-white/40 hover:bg-white/5"
+                                    }`}
+                                onDragEnter={handleDrag}
+                                onDragLeave={handleDrag}
+                                onDragOver={handleDrag}
+                                onDrop={handleDrop}
+                                onClick={() => inputRef.current?.click()}
+                            >
+                                <input
+                                    ref={inputRef}
+                                    type="file"
+                                    className="hidden"
+                                    onChange={handleChange}
+                                    accept="image/*,video/*"
+                                />
+
+                                <AnimatePresence mode="wait">
+                                    {file ? (
+                                        <motion.div
+                                            key="file-uploaded"
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.8 }}
+                                            className="flex flex-col items-center text-emerald-400"
+                                        >
+                                            <FileCheck className="w-16 h-16 mb-4" />
+                                            <p className="font-medium text-lg text-white">{file.name}</p>
+                                            <p className="text-sm text-emerald-400/70">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            <p className="mt-4 text-xs text-slate-500">Click to replace</p>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div
+                                            key="upload-prompt"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="flex flex-col items-center text-slate-400"
+                                        >
+                                            <Upload className={`w-12 h-12 mb-4 transition-transform duration-300 ${dragActive ? 'scale-110 text-emerald-500' : ''}`} />
+                                            <p className="font-medium">Drag & drop evidence here</p>
+                                            <p className="text-sm mt-2 opacity-60">or click to browse</p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {file && (
                                 <motion.div
-                                    key="file-uploaded"
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.8 }}
-                                    className="flex flex-col items-center text-emerald-400"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex justify-center mt-6 w-full md:w-auto"
                                 >
-                                    <FileCheck className="w-16 h-16 mb-4" />
-                                    <p className="font-medium text-lg text-white">{file.name}</p>
-                                    <p className="text-sm text-emerald-400/70">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                    <p className="mt-4 text-xs text-slate-500">Click to replace</p>
+                                    <button
+                                        onClick={startAnalysis}
+                                        className="w-full md:w-auto px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold transition-all shadow-lg hover:shadow-emerald-500/20"
+                                    >
+                                        Initiate Analysis
+                                    </button>
                                 </motion.div>
-                            ) : (
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+
+                {/* --- Analysis Grid --- */}
+                {(status === "agents" || status === "complete") && (
+                    <motion.div
+                        className="w-full grid grid-cols-1 md:grid-cols-2 gap-4"
+                        layout
+                    >
+                        <AnimatePresence>
+                            {completedAgents.map((agent, i) => (
                                 <motion.div
-                                    key="upload-prompt"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="flex flex-col items-center text-slate-400"
+                                    key={agent.id}
+                                    initial={{ opacity: 0, x: -20, filter: "blur(10px)" }}
+                                    animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                                    // Stagger effect naturally happens because items are added over time
+                                    className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg flex items-start space-x-4 shadow-xl"
                                 >
-                                    <Upload className={`w-12 h-12 mb-4 transition-transform duration-300 ${dragActive ? 'scale-110 text-emerald-500' : ''}`} />
-                                    <p className="font-medium">Drag & drop evidence here</p>
-                                    <p className="text-sm mt-2 opacity-60">or click to browse</p>
+                                    <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                                        {agent.icon}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white relative flex items-center gap-2">
+                                            {agent.name}
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/10 uppercase tracking-wider">{agent.role}</span>
+                                        </h3>
+                                        <p className="text-sm text-slate-300 mt-1 leading-relaxed">{agent.result}</p>
+                                        <div className="mt-3 flex items-center text-emerald-500 text-xs font-mono font-bold">
+                                            <CheckCircle className="w-3 h-3 mr-1" /> CONFIDENCE: {agent.confidence}%
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+
+                            {/* Thinking Card (Current Agent) - Only show if current agent is thinking */}
+                            {status === "agents" && isThinking && currentAgentIndex < MOCK_AGENTS.length && (
+                                <motion.div
+                                    key="thinking"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="p-5 rounded-2xl bg-white/5 border border-white/5 border-dashed flex items-center justify-center space-x-3 text-slate-500 min-h-[140px]"
+                                >
+                                    <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                                    <span className="animate-pulse">
+                                        {MOCK_AGENTS[currentAgentIndex]?.name} processing...
+                                    </span>
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                    </div>
-                </motion.div>
+                    </motion.div>
+                )}
 
-                {file && (
+                {/* --- Completion Actions --- */}
+                {status === "complete" && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex flex-col md:flex-row gap-4 mt-4 w-full md:w-auto"
                     >
-                        <button className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold transition-all shadow-lg hover:shadow-emerald-500/20">
-                            Initiate Analysis
+                        <button
+                            onClick={resetAnalysis}
+                            className="w-full md:w-auto px-6 py-3 rounded-full border border-white/20 hover:bg-white/10 text-white font-semibold transition-all flex items-center justify-center gap-2"
+                        >
+                            <RefreshCw className="w-4 h-4" /> Analyse Again
+                        </button>
+                        <button
+                            onClick={acceptAnalysis}
+                            className="w-full md:w-auto px-8 py-3 bg-white text-black hover:bg-slate-200 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center justify-center gap-2"
+                        >
+                            Accept Analysis <ArrowRight className="w-4 h-4" />
                         </button>
                     </motion.div>
                 )}
+
             </main>
         </div>
     );
