@@ -123,7 +123,7 @@ export default function ResultPage() {
                                     <div className="p-5 md:p-8 rounded-3xl bg-gradient-to-br from-emerald-900/20 to-slate-900/40 border border-emerald-500/20 shadow-2xl">
                                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                                             <div>
-                                                <h2 className="text-3xl font-bold text-white mb-2 break-all">{currentReport.fileName}</h2>
+                                                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 break-all">{currentReport.fileName}</h2>
                                                 <p className="text-slate-400 font-mono text-sm">{formatDate(currentReport.timestamp)}</p>
                                             </div>
                                             <div className="flex flex-wrap gap-3">
@@ -165,13 +165,13 @@ export default function ResultPage() {
                                         </div>
                                         <div className="space-y-4">
                                             <h3 className="text-xl font-semibold text-emerald-400">Executive Summary</h3>
-                                            <p className="text-lg text-slate-200 leading-relaxed font-light">{currentReport.summary}</p>
+                                            <p className="text-base md:text-lg text-slate-200 leading-relaxed font-light">{currentReport.summary}</p>
                                             <p className="text-slate-400 leading-relaxed">
                                                 The Council has aggregated data from all available forensic layers. The following key signals were extracted and cross-referenced:
                                             </p>
 
                                             <div className="bg-slate-900/50 rounded-xl p-4 border border-white/5 mt-4">
-                                                <h4 className="text-sm font-bold text-slate-300 mb-3 uppercase tracking-wider">Key Signals Detected</h4>
+                                                <h4 className="text-xs md:text-sm font-bold text-slate-300 mb-3 uppercase tracking-wider">Key Signals Detected</h4>
                                                 <ul className="space-y-2">
                                                     {currentReport.agents.map((agent, i) => (
                                                         <li key={i} className="flex items-start text-sm text-slate-400 gap-2">

@@ -44,11 +44,11 @@ export default function LandingPage() {
       >
         {/* Search Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-emerald-500 opacity-20 blur-[100px]"></div>
+        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-cyan-500 opacity-20 blur-[100px]"></div>
 
         <header className="absolute top-0 w-full p-6 flex items-center justify-between border-b border-white/10 backdrop-blur-md z-50 pointer-events-auto">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-emerald-500 rounded flex items-center justify-center font-bold text-slate-900">FC</div>
+            <div className="w-10 h-10 bg-cyan-500 rounded flex items-center justify-center font-bold text-slate-900">FC</div>
             <span className="text-xl font-bold tracking-tight">Forensic Council</span>
           </div>
         </header>
@@ -57,7 +57,7 @@ export default function LandingPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-7xl font-bold max-w-4xl mb-6 tracking-tighter bg-gradient-to-br from-white via-white to-emerald-500 bg-clip-text text-transparent"
+            className="text-5xl md:text-7xl font-bold max-w-4xl mb-6 tracking-tighter text-white pb-2"
           >
             Multi-Agent Forensic Evidence Analysis System
           </motion.h1>
@@ -65,12 +65,12 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-slate-200 max-w-2xl text-lg mb-10"
+            className="text-white text-lg max-w-2xl mb-10"
           >
             This system leverages multiple intelligent agents that analyze digital forensic evidence and compile those insights into a cohesive report.
           </motion.p>
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}>
-            <Link href="/evidence" className="group relative px-8 py-4 bg-emerald-600 text-white font-bold rounded-full overflow-hidden transition-all hover:bg-emerald-500 inline-block">
+            <Link href="/evidence" className="group relative px-8 py-4 bg-cyan-600 text-white font-bold rounded-full overflow-hidden transition-all hover:bg-cyan-500 inline-block">
               <span className="relative z-10 flex items-center">
                 Begin Analysis <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </span>
@@ -88,15 +88,15 @@ export default function LandingPage() {
         >
           {/* --- Meet the Agents ---  */}
           <section className="py-20 px-6 bg-slate-900/50 rounded-t-3xl">
-            <h2 className="text-3xl font-bold text-center mb-12">Meet the Agents</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Meet the Agents</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
               {agents.map((agent, i) => (
                 <motion.div
                   key={i}
                   whileHover={{ y: -5 }}
-                  className="p-6 rounded-2xl bg-slate-800/50 border border-white/5 flex flex-col items-center text-center hover:border-emerald-500/50 transition-colors"
+                  className="p-6 rounded-2xl bg-slate-800/50 border border-white/5 flex flex-col items-center text-center hover:border-cyan-500/50 transition-colors"
                 >
-                  <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl mb-4">
+                  <div className="p-3 bg-cyan-500/10 text-cyan-500 rounded-xl mb-4">
                     {agent.icon}
                   </div>
                   <h3 className="font-semibold text-sm mb-2">{agent.name}</h3>
@@ -108,7 +108,7 @@ export default function LandingPage() {
 
           {/* --- How it Works ---  */}
           <section className="py-24 px-6 max-w-5xl mx-auto text-center bg-black">
-            <h2 className="text-3xl font-bold mb-16">How the Forensic Council Works</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-16">How the Forensic Council Works</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               {[
                 { step: "01", title: "Evidence Intake", desc: "Upload digital media including CCTV, photos, or mobile evidence." },
@@ -116,7 +116,7 @@ export default function LandingPage() {
                 { step: "03", title: "Final Verdict", desc: "A cohesive, legal-ready report is synthesized for review." }
               ].map((item, i) => (
                 <div key={i} className="relative p-6">
-                  <span className="text-6xl font-black text-white/5 absolute -top-4 left-1/2 -translate-x-1/2 select-none">{item.step}</span>
+                  <span className="text-5xl md:text-6xl font-black text-white/5 absolute -top-4 left-1/2 -translate-x-1/2 select-none">{item.step}</span>
                   <h4 className="text-xl font-bold mb-3 relative z-10">{item.title}</h4>
                   <p className="text-slate-400 text-sm relative z-10">{item.desc}</p>
                 </div>
