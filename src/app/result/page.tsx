@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Trash2, AlertTriangle, ChevronDown, Download, FileText, FileJson, FileType } from "lucide-react";
